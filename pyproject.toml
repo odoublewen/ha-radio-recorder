@@ -1,6 +1,6 @@
 [project]
 name = "ha-radio-recorder"
-version = "0.2.0"
+version = "0.1.0"
 description = "Home Assistant integration that records internet radio shows on a calendar schedule."
 readme = "README.md"
 license = "MIT"
