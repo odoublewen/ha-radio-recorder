@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import errno
+import logging
 import os
 import re
 from datetime import datetime
 from pathlib import Path
 
+import mutagen
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError
+
+_LOGGER = logging.getLogger(__name__)
 
 # The song title and the file name both use the recording's start time in this form.
 TIMESTAMP_FORMAT = "%Y_%m_%d_%H_%M_%S"
@@ -47,18 +50,35 @@ def parse_owner(text: str | None) -> tuple[int, int] | None:
     return int(uid), int(gid)
 
 
-def tag_mp3(path: Path, *, station: str, show: str, title: str, date: str) -> None:
-    """Station as artist, show as album, timestamp as title."""
+def tag_file(path: Path, ext: str, *, station: str, show: str, title: str, date: str) -> None:
+    """Station as artist, show as album, timestamp as title, in the file's own tag format.
+
+    `ext` is the format's extension (`path` may be a `.part` file). Formats that can't
+    hold tags (raw AAC) are left untagged.
+    """
     try:
-        tags = EasyID3(path)
-    except ID3NoHeaderError:
-        tags = EasyID3()
-    tags["artist"] = station
-    tags["album"] = show
-    tags["title"] = title
-    tags["date"] = date
-    tags["genre"] = "Radio"
-    tags.save(path)
+        audio = mutagen.File(path, easy=True)
+    except mutagen.MutagenError:
+        audio = None
+    if audio is None:
+        if ext != ".mp3":
+            _LOGGER.debug("Not tagging %s: mutagen can't read it", path.name)
+            return
+        # mutagen can't always find the first frame of a raw MP3 stream; an ID3
+        # header can still go in front of it.
+        audio = EasyID3()
+    elif audio.tags is None:
+        try:
+            audio.add_tags()
+        except mutagen.MutagenError as err:
+            _LOGGER.debug("Not tagging %s: %s", path.name, err)
+            return
+    audio["artist"] = station
+    audio["album"] = show
+    audio["title"] = title
+    audio["date"] = date
+    audio["genre"] = "Radio"
+    audio.save(path)
 
 
 def _move_no_clobber(src: Path, dest: Path) -> Path:
@@ -89,16 +109,14 @@ def finalize(
     station: str,
     show: str,
     start: datetime,
-    content_type: str | None,
+    ext: str,
     owner: tuple[int, int] | None = None,
 ) -> Path:
-    """Tag `incoming` and move it to `<output_dir>/<station>/<show> - <timestamp>.<ext>`."""
+    """Tag `incoming` and move it to `<output_dir>/<station>/<show> - <timestamp><ext>`."""
     timestamp = start.strftime(TIMESTAMP_FORMAT)
-    ext = extension_for(content_type)
-    if ext == ".mp3":
-        tag_mp3(
-            incoming, station=station, show=show, title=timestamp, date=start.strftime("%Y-%m-%d")
-        )
+    tag_file(
+        incoming, ext, station=station, show=show, title=timestamp, date=start.strftime("%Y-%m-%d")
+    )
     station_dir = output_dir / safe_name(station)
     station_dir.mkdir(parents=True, exist_ok=True)
     dest = _move_no_clobber(incoming, station_dir / f"{safe_name(show)} - {timestamp}{ext}")

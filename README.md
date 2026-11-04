@@ -2,15 +2,17 @@
 
 A Home Assistant integration that records internet radio shows. Schedule shows as
 events on a calendar, or start a recording with an action. Each recording is saved as a
-tagged MP3 in a folder per station:
+tagged file (MP3, FLAC, ...) in a folder per station:
 
 ```
 <output folder>/KALX/Madame X - 2026_10_14_18_15_00.mp3
     artist = KALX    album = Madame X    title = 2026_10_14_18_15_00    genre = Radio
 ```
 
-It needs no external tools such as streamripper or ffmpeg. The integration fetches the
-stream over HTTP and tags the file with [mutagen](https://mutagen.readthedocs.io/).
+The integration fetches the stream over HTTP and tags the file with
+[mutagen](https://mutagen.readthedocs.io/). MP3 streams need nothing else. FLAC and AAC
+streams are tidied up with ffmpeg, which comes with Home Assistant OS and the official
+container image.
 
 ## Install
 
@@ -120,8 +122,17 @@ could be saved, `radio_recorder_failed` fires with an `error`.
 * Recordings survive restarts. If Home Assistant restarts mid-show, or the integration
   reloads after a settings change, the recording picks up where it left off in the
   same file once Home Assistant is back.
-* Streams that aren't MP3 (AAC, Ogg) are saved with the right extension but not tagged.
-  HLS playlists (`.m3u8`) and web pages are refused.
+* FLAC streams (Ogg FLAC, as Icecast serves them, or plain FLAC) are re-encoded with
+  ffmpeg into a plain `.flac`. It's lossless (the audio is bit-for-bit the same), and it
+  fixes the length players show (a live stream counts from when the broadcast started)
+  and joins the pieces left by reconnects.
+* AAC streams are copied into an `.m4a`, without re-encoding, so they can be tagged.
+* Other streams (Ogg Vorbis, Opus) are saved and tagged as they are.
+* If ffmpeg is missing or fails, the stream is saved as recorded (`.ogg`, `.aac`), and
+  tagged if the format allows it. The ffmpeg used is the one set in Home Assistant's
+  [FFmpeg integration](https://www.home-assistant.io/integrations/ffmpeg/) if that's set
+  up, otherwise `ffmpeg` on the path.
+* HLS playlists (`.m3u8`) and web pages are refused.
 
 ## Development
 
