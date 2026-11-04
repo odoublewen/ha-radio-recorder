@@ -10,6 +10,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    # Ships with Home Assistant (so not in manifest.json), but not with the test harness.
     "mutagen==1.48.1",
     "pytest-homeassistant-custom-component==0.13.375",
     "ruff>=0.6",

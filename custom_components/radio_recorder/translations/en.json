@@ -12,7 +12,7 @@
           "file_owner": "File owner (uid:gid)"
         },
         "data_description": {
-          "output_dir": "Folder inside Home Assistant's container. Each recording is saved as <folder>/<station>/<show> - <timestamp>.mp3.",
+          "output_dir": "Folder inside Home Assistant's container. Recordings go in a subfolder per station, named after the show and start time.",
           "calendar_entity_id": "Each event on this calendar is one recording: the summary is the show, the location is the station name (or a stream URL). Leave empty to record only with the record action.",
           "file_owner": "Optional. Change the owner of saved files, e.g. 568:568. Home Assistant's container usually runs as root."
         }
@@ -38,7 +38,7 @@
           "file_owner": "File owner (uid:gid)"
         },
         "data_description": {
-          "output_dir": "Folder inside Home Assistant's container. Each recording is saved as <folder>/<station>/<show> - <timestamp>.mp3.",
+          "output_dir": "Folder inside Home Assistant's container. Recordings go in a subfolder per station, named after the show and start time.",
           "calendar_entity_id": "Each event on this calendar is one recording: the summary is the show, the location is the station name (or a stream URL). Leave empty to record only with the record action.",
           "file_owner": "Optional. Change the owner of saved files, e.g. 568:568."
         }
