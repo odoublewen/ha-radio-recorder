@@ -32,11 +32,14 @@ AUDIO = b"\xff\xfb" + b"\x00" * 1022
 class FakeRecorder:
     """Writes one chunk, then waits for the end time or `stop`.
 
-    Set `FakeRecorder.error` to make the next run raise it after writing nothing.
+    Set `FakeRecorder.error` to make the next run raise it after writing nothing, and
+    `audio` and `content_type` to change what the stream sends.
     """
 
     instances: list[FakeRecorder] = []
     error: Exception | None = None
+    audio: bytes = AUDIO
+    content_type: str = "audio/mpeg"
 
     def __init__(self, session, recording: Recording, **kwargs) -> None:
         self.recording = recording
@@ -55,9 +58,9 @@ class FakeRecorder:
             raise error
         rec.incoming.parent.mkdir(parents=True, exist_ok=True)
         with rec.incoming.open("ab") as f:
-            f.write(AUDIO)
-        rec.bytes += len(AUDIO)
-        rec.content_type = "audio/mpeg"
+            f.write(self.audio)
+        rec.bytes += len(self.audio)
+        rec.content_type = self.content_type
         remaining = (rec.end - dt_util.utcnow()).total_seconds()
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(self._stop.wait(), max(remaining, 0))
@@ -72,6 +75,8 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 def recorder():
     FakeRecorder.instances = []
     FakeRecorder.error = None
+    FakeRecorder.audio = AUDIO
+    FakeRecorder.content_type = "audio/mpeg"
     with patch("custom_components.radio_recorder.manager.StreamRecorder", FakeRecorder):
         yield FakeRecorder
 

@@ -27,8 +27,9 @@ from .const import (
     STORAGE_KEY,
     STORAGE_VERSION,
 )
+from .convert import conversion_for, convert
 from .recorder import Recording, StreamRecorder, UnsupportedStream
-from .tagging import finalize
+from .tagging import extension_for, finalize
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -173,9 +174,9 @@ class RecordingManager:
         path: Path | None = None
         if rec.bytes:
             try:
-                path = await self.hass.async_add_executor_job(self._finalize, rec)
+                path = await self._async_save(rec)
             except Exception as err:
-                _LOGGER.exception("Could not tag or move %s", rec.incoming)
+                _LOGGER.exception("Could not save %s", rec.incoming)
                 error = f"{type(err).__name__}: {err}"
         elif error is None:
             error = "no audio received"
@@ -200,14 +201,34 @@ class RecordingManager:
             self.hass.bus.async_fire(EVENT_FAILED, {**event, "error": error})
         self._changed()
 
-    def _finalize(self, rec: Recording) -> Path:
+    async def _async_save(self, rec: Recording) -> Path:
+        """Convert the stream if it needs it, then tag it and move it into the library.
+
+        If the conversion fails, the stream is saved as it was recorded.
+        """
+        src, ext = rec.incoming, extension_for(rec.content_type)
+        if conversion := await self.hass.async_add_executor_job(conversion_for, src, ext):
+            new_ext, options = conversion
+            if converted := await convert(_ffmpeg_binary(self.hass), src, new_ext, options):
+                src, ext = converted, new_ext
+        if src == rec.incoming:
+            return await self.hass.async_add_executor_job(self._finalize, rec, src, ext)
+        try:
+            path = await self.hass.async_add_executor_job(self._finalize, rec, src, ext)
+        except Exception:
+            await self.hass.async_add_executor_job(_remove, src)
+            raise
+        await self.hass.async_add_executor_job(_remove, rec.incoming)
+        return path
+
+    def _finalize(self, rec: Recording, src: Path, ext: str) -> Path:
         return finalize(
-            rec.incoming,
+            src,
             self.output_dir,
             station=rec.station,
             show=rec.show,
             start=dt_util.as_local(rec.start),
-            content_type=rec.content_type,
+            ext=ext,
             owner=self.owner,
         )
 
@@ -254,6 +275,15 @@ class RecordingManager:
             for a in self.active.values()
             if a.recording.station.casefold() == station.casefold()
         ]
+
+
+def _ffmpeg_binary(hass: HomeAssistant) -> str:
+    """The ffmpeg set in HA's ffmpeg integration if it's loaded, else the one on PATH."""
+    if "ffmpeg" in hass.config.components:
+        from homeassistant.components.ffmpeg import get_ffmpeg_manager
+
+        return get_ffmpeg_manager(hass).binary
+    return "ffmpeg"
 
 
 def _size(path: Path) -> int:

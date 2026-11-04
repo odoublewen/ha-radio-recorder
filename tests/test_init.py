@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
 
+import mutagen
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN
@@ -28,6 +30,8 @@ from custom_components.radio_recorder.const import (
 from custom_components.radio_recorder.recorder import Recording, UnsupportedStream
 
 from .conftest import AUDIO, KALX_URL, calendar_event
+from .test_convert import needs_ffmpeg
+from .test_tagging import OGG_FLAC
 
 RECORDING = "binary_sensor.kalx_recording"
 LAST = "sensor.kalx_last_recording"
@@ -118,6 +122,40 @@ async def test_record_then_stop_saves_a_tagged_file(
     assert last.state != STATE_UNKNOWN
     assert last.attributes["path"] == str(path)
     assert [e.data["path"] for e in finished] == [str(path)]
+
+
+async def record_ogg_flac(hass: HomeAssistant, recorder, tmp_path: Path) -> Path:
+    recorder.audio = OGG_FLAC.read_bytes()
+    recorder.content_type = "audio/ogg"
+    await record(hass)
+    response = await stop(hass, station="KALX")
+    (stopped,) = response["stopped"]
+    assert not list((tmp_path / ".incoming").iterdir())
+    return Path(stopped["path"])
+
+
+@needs_ffmpeg
+async def test_ogg_flac_is_saved_as_a_tagged_flac(
+    hass: HomeAssistant, loaded, recorder, tmp_path
+) -> None:
+    path = await record_ogg_flac(hass, recorder, tmp_path)
+    assert path.suffix == ".flac"
+    audio = mutagen.File(path, easy=True)
+    assert type(audio).__name__ == "FLAC"
+    assert audio.info.length == pytest.approx(0.25, abs=0.01)
+    assert audio["album"] == ["Madame X"]
+
+
+async def test_without_ffmpeg_ogg_flac_is_kept_as_a_tagged_ogg(
+    hass: HomeAssistant, loaded, recorder, tmp_path
+) -> None:
+    with patch(
+        "custom_components.radio_recorder.manager._ffmpeg_binary",
+        return_value=str(tmp_path / "no-ffmpeg"),
+    ):
+        path = await record_ogg_flac(hass, recorder, tmp_path)
+    assert path.suffix == ".ogg"
+    assert mutagen.File(path, easy=True)["album"] == ["Madame X"]
 
 
 async def test_recording_stops_at_its_end_time(hass: HomeAssistant, loaded, recorder) -> None:

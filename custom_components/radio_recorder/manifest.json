@@ -1,7 +1,7 @@
 {
   "domain": "radio_recorder",
   "name": "Radio Recorder",
-  "after_dependencies": ["calendar"],
+  "after_dependencies": ["calendar", "ffmpeg"],
   "codeowners": ["@odoublewen"],
   "config_flow": true,
   "dependencies": [],
@@ -12,5 +12,5 @@
   "loggers": ["mutagen"],
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
