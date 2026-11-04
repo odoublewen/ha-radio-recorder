@@ -1,0 +1,124 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Radio Recorder",
+        "description": "Where recordings are saved, and the calendar that schedules them.",
+        "data": {
+          "output_dir": "Output folder",
+          "calendar_entity_id": "Schedule calendar",
+          "pad_before": "Start early by",
+          "pad_after": "Keep recording after the end for",
+          "file_owner": "File owner (uid:gid)"
+        },
+        "data_description": {
+          "output_dir": "Folder inside Home Assistant's container. Each recording is saved as <folder>/<station>/<show> - <timestamp>.mp3.",
+          "calendar_entity_id": "Each event on this calendar is one recording: the summary is the show, the location is the station name (or a stream URL). Leave empty to record only with the record action.",
+          "file_owner": "Optional. Change the owner of saved files, e.g. 568:568. Home Assistant's container usually runs as root."
+        }
+      }
+    },
+    "error": {
+      "output_dir_invalid": "The folder doesn't exist or isn't writable from Home Assistant.",
+      "invalid_owner": "Use numeric uid:gid, e.g. 568:568."
+    },
+    "abort": {
+      "single_instance_allowed": "Radio Recorder is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Radio Recorder",
+        "data": {
+          "output_dir": "Output folder",
+          "calendar_entity_id": "Schedule calendar",
+          "pad_before": "Start early by",
+          "pad_after": "Keep recording after the end for",
+          "file_owner": "File owner (uid:gid)"
+        },
+        "data_description": {
+          "output_dir": "Folder inside Home Assistant's container. Each recording is saved as <folder>/<station>/<show> - <timestamp>.mp3.",
+          "calendar_entity_id": "Each event on this calendar is one recording: the summary is the show, the location is the station name (or a stream URL). Leave empty to record only with the record action.",
+          "file_owner": "Optional. Change the owner of saved files, e.g. 568:568."
+        }
+      }
+    },
+    "error": {
+      "output_dir_invalid": "The folder doesn't exist or isn't writable from Home Assistant.",
+      "invalid_owner": "Use numeric uid:gid, e.g. 568:568."
+    }
+  },
+  "config_subentries": {
+    "station": {
+      "entry_type": "Station",
+      "initiate_flow": {
+        "user": "Add station"
+      },
+      "step": {
+        "user": {
+          "title": "Add station",
+          "data": {
+            "name": "Name",
+            "url": "Stream URL"
+          },
+          "data_description": {
+            "name": "Used as the artist tag and the folder name, and matched against calendar event locations.",
+            "url": "The direct audio stream, e.g. http://stream.kalx.berkeley.edu:8000/kalx-256.mp3"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit station",
+          "data": {
+            "name": "Name",
+            "url": "Stream URL"
+          }
+        }
+      },
+      "error": {
+        "invalid_name": "Enter a name.",
+        "name_exists": "A station with this name already exists.",
+        "invalid_url": "Enter an http or https URL."
+      },
+      "abort": {
+        "reconfigure_successful": "Station updated."
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "recording": { "name": "Recording" }
+    },
+    "sensor": {
+      "last_recording": { "name": "Last recording" },
+      "next_recording": { "name": "Next recording" }
+    }
+  },
+  "services": {
+    "record": {
+      "name": "Record",
+      "description": "Start recording a station now. Give a duration or an end time.",
+      "fields": {
+        "station": {
+          "name": "Station",
+          "description": "A configured station's name. With a URL, any name: it becomes the artist tag and folder."
+        },
+        "show": { "name": "Show", "description": "Used as the album tag and in the file name." },
+        "duration": { "name": "Duration", "description": "How long to record." },
+        "end": { "name": "End", "description": "When to stop, instead of a duration." },
+        "url": {
+          "name": "Stream URL",
+          "description": "Record this URL instead of the station's configured one."
+        }
+      }
+    },
+    "stop": {
+      "name": "Stop",
+      "description": "Stop a recording early. What was recorded is still tagged and saved.",
+      "fields": {
+        "recording_id": { "name": "Recording ID", "description": "From the record action's response." },
+        "station": { "name": "Station", "description": "Stop every recording of this station." }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+[project]
+name = "ha-radio-recorder"
+version = "0.1.0"
+description = "Home Assistant integration that records internet radio shows on a calendar schedule."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Owen Solberg" }]
+requires-python = ">=3.14.2"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mutagen==1.48.1",
+    "pytest-homeassistant-custom-component==0.13.375",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+# Tests run on 3.14, but the integration still supports HA 2025.10 on Python 3.13.
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

@@ -1,0 +1,18 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "recording": {
+        "default": "mdi:radio",
+        "state": { "on": "mdi:record-rec" }
+      }
+    },
+    "sensor": {
+      "last_recording": { "default": "mdi:file-music" },
+      "next_recording": { "default": "mdi:calendar-clock" }
+    }
+  },
+  "services": {
+    "record": { "service": "mdi:record-rec" },
+    "stop": { "service": "mdi:stop" }
+  }
+}

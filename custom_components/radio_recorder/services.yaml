@@ -1,0 +1,34 @@
+record:
+  fields:
+    station:
+      required: true
+      example: KALX
+      selector:
+        text:
+    show:
+      required: true
+      example: Madame X
+      selector:
+        text:
+    duration:
+      example: "01:45:00"
+      selector:
+        duration:
+    end:
+      selector:
+        datetime:
+    url:
+      example: http://stream.kalx.berkeley.edu:8000/kalx-256.mp3
+      selector:
+        text:
+          type: url
+
+stop:
+  fields:
+    recording_id:
+      selector:
+        text:
+    station:
+      example: KALX
+      selector:
+        text:
