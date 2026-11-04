@@ -64,7 +64,7 @@
           },
           "data_description": {
             "name": "Used as the artist tag and the folder name, and matched against calendar event locations.",
-            "url": "The direct audio stream, e.g. http://stream.kalx.berkeley.edu:8000/kalx-256.mp3"
+            "url": "The direct audio stream: the URL a player like VLC would open, not the station's web page."
           }
         },
         "reconfigure": {
